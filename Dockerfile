@@ -12,3 +12,6 @@ COPY . .
 
 # Expose port 3000
 EXPOSE 3000
+
+# Start the Rails server and bind it to 0.0.0.0
+CMD ["rails", "server", "-b", "0.0.0.0"]
