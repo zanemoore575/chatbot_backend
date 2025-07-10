@@ -1,7 +1,21 @@
-# This is the only configuration needed for a production environment like Render.
-# It directly tells Rails to use the DATABASE_URL environment variable.
-production:
+# This is the standard Rails database configuration file.
+# The production database is now configured in config/environments/production.rb
+
+default: &default
   adapter: postgresql
   encoding: unicode
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  url: <%= ENV["DATABASE_URL"] %>
+
+development:
+  <<: *default
+  database: chatbot_backend_development
+
+test:
+  <<: *default
+  database: chatbot_backend_test
+
+production:
+  <<: *default
+  # This section is now overridden by the configuration in production.rb
+  # but is kept here for completeness.
+  database: chatbot_backend_production

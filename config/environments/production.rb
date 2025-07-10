@@ -91,3 +91,18 @@ Rails.application.configure do
   # Skip DNS rebinding protection for the default health check endpoint.
   # config.host_authorization = { exclude: ->(request) { request.path == "/up" } }
 end
+
+# Add this block at the end of your config/environments/production.rb file
+
+# Force the application to use the DATABASE_URL from the environment.
+# This is the most reliable way to configure the database on Render.
+if ENV["DATABASE_URL"]
+  config.database_configuration = {
+    "production" => {
+      "url" => ENV["DATABASE_URL"],
+      "adapter" => "postgresql",
+      "encoding" => "unicode",
+      "pool" => ENV.fetch("RAILS_MAX_THREADS") { 5 }
+    }
+  }
+end
