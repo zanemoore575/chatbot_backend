@@ -7,42 +7,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Chat Widget Styles */
-        #chat-widget-container {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            z-index: 1000;
-        }
-        #chat-window {
-            width: 370px;
-            height: 550px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
-        }
-        #chat-messages {
-            scrollbar-width: thin;
-            scrollbar-color: #a0aec0 #edf2f7;
-        }
-        .message {
-            max-width: 80%;
-            word-wrap: break-word;
-        }
-        .hidden {
-            transform: translateY(20px);
-            opacity: 0;
-            pointer-events: none;
-        }
+        body { font-family: 'Inter', sans-serif; }
+        #chat-widget-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1000; }
+        #chat-window { width: 370px; height: 550px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transition: transform 0.3s ease-out, opacity 0.3s ease-out; }
+        #chat-messages { scrollbar-width: thin; scrollbar-color: #a0aec0 #edf2f7; }
+        .message { max-width: 80%; word-wrap: break-word; }
+        .hidden { transform: translateY(20px); opacity: 0; pointer-events: none; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
 
     <!-- Mock Website Content -->
     <div class="min-h-screen">
-        <!-- Header -->
         <header class="bg-white shadow-sm">
             <div class="container mx-auto px-6 py-4 flex justify-between items-center">
                 <h1 class="text-2xl font-bold text-blue-600">Custom AI Solutions</h1>
@@ -53,33 +29,23 @@
                 </nav>
             </div>
         </header>
-
-        <!-- Hero Section -->
         <main class="container mx-auto px-6 py-24 text-center">
             <h2 class="text-5xl font-extrabold leading-tight">Revolutionize Your Customer Engagement</h2>
-            <p class="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">
-                We build intelligent, streaming AI chatbots, powered by cutting-edge technology, tailored specifically for your business needs.
-            </p>
-            <button class="mt-8 px-8 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition duration-300">
-                Get a Demo
-            </button>
+            <p class="mt-4 text-xl text-gray-600 max-w-2xl mx-auto">We build intelligent, streaming AI chatbots, tailored specifically for your business needs.</p>
+            <button class="mt-8 px-8 py-3 bg-blue-600 text-white font-semibold rounded-full hover:bg-blue-700 transition duration-300">Get a Demo</button>
         </main>
     </div>
 
     <!-- Chat Widget -->
     <div id="chat-widget-container">
-        <!-- Chat Window -->
         <div id="chat-window" class="hidden bg-white rounded-lg flex flex-col">
-            <!-- Header -->
             <div class="p-4 bg-blue-600 text-white rounded-t-lg">
                 <h3 class="font-bold text-lg">AI Assistant</h3>
                 <p class="text-sm opacity-90">How can I help you today?</p>
             </div>
-            <!-- Messages -->
-            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-3">
-                 <div class="message ai-message bg-gray-200 text-gray-800 p-3 rounded-lg self-start">Hello! Ask me anything about our services.</div>
+            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto flex flex-col space-y-3">
+                <!-- Messages will be loaded here by JavaScript -->
             </div>
-            <!-- Input -->
             <div class="p-3 border-t border-gray-200">
                 <form id="chat-form" class="flex items-center space-x-2">
                     <input type="text" id="message-input" placeholder="Type your message..." autocomplete="off" class="flex-grow p-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -89,7 +55,6 @@
                 </form>
             </div>
         </div>
-        <!-- Chat Launcher Button -->
         <button id="chat-launcher" class="bg-blue-600 text-white rounded-full p-4 shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         </button>
@@ -98,21 +63,46 @@
     <script>
         const CHATBOT_API_URL = 'https://chatbot-backend-zane.onrender.com/chat';
         
-        // DOM Elements
         const chatLauncher = document.getElementById('chat-launcher');
         const chatWindow = document.getElementById('chat-window');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const chatMessages = document.getElementById('chat-messages');
         const submitButton = document.getElementById('submit-button');
-        
-        // State
-        const sessionId = crypto.randomUUID();
 
-        // Event Listeners
-        chatLauncher.addEventListener('click', () => {
-            chatWindow.classList.toggle('hidden');
-        });
+        // --- SESSION AND HISTORY MANAGEMENT ---
+        let sessionId = sessionStorage.getItem('chatSessionId');
+        let chatHistory = [];
+
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            sessionStorage.setItem('chatSessionId', sessionId);
+            addMessage("Hello! Ask me anything about our services.", 'ai');
+        } else {
+            loadHistory();
+        }
+
+        function loadHistory() {
+            const storedHistory = sessionStorage.getItem('chatHistory');
+            if (storedHistory) {
+                try {
+                    chatHistory = JSON.parse(storedHistory);
+                    chatMessages.innerHTML = ''; // Clear existing messages
+                    chatHistory.forEach(msg => addMessage(msg.text, msg.type, false));
+                } catch (e) {
+                    console.error("Could not parse chat history:", e);
+                    sessionStorage.removeItem('chatHistory'); // Clear corrupted history
+                }
+            }
+        }
+
+        function saveHistory(text, type) {
+            chatHistory.push({ text, type });
+            sessionStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+        }
+        
+        // --- EVENT LISTENERS ---
+        chatLauncher.addEventListener('click', () => chatWindow.classList.toggle('hidden'));
         chatForm.addEventListener('submit', handleFormSubmit);
 
         function handleFormSubmit(e) {
@@ -124,17 +114,20 @@
             messageInput.value = '';
             toggleForm(false);
 
-            const aiMessageElement = createEmptyMessage('ai');
+            const aiMessageElement = createEmptyMessage();
             const encodedMessage = encodeURIComponent(userMessage);
             const eventSource = new EventSource(`${CHATBOT_API_URL}?message=${encodedMessage}&session_id=${sessionId}`);
-
+            
+            let fullResponse = "";
             eventSource.onmessage = function(event) {
                 if (event.data === "[DONE]") {
                     eventSource.close();
                     toggleForm(true);
+                    saveHistory(fullResponse, 'ai'); // Save the complete AI message
                     return;
                 }
-                aiMessageElement.textContent += event.data;
+                fullResponse += event.data;
+                aiMessageElement.textContent = fullResponse;
                 scrollToBottom();
             };
 
@@ -146,14 +139,16 @@
             };
         }
 
-        function addMessage(text, type) {
+        function addMessage(text, type, shouldSave = true) {
+            if (shouldSave) saveHistory(text, type);
+
             const messageElement = document.createElement('div');
-            messageElement.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
+            messageElement.classList.add('message');
             
             if (type === 'user') {
-                messageElement.classList.add('bg-blue-600', 'text-white', 'p-3', 'rounded-lg', 'self-end');
+                messageElement.classList.add('user-message', 'bg-blue-600', 'text-white', 'p-3', 'rounded-lg', 'self-end');
             } else {
-                messageElement.classList.add('bg-gray-200', 'text-gray-800', 'p-3', 'rounded-lg', 'self-start');
+                messageElement.classList.add('ai-message', 'bg-gray-200', 'text-gray-800', 'p-3', 'rounded-lg', 'self-start');
             }
 
             messageElement.textContent = text;
