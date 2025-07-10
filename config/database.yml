@@ -14,6 +14,11 @@ test:
   <<: *default
   database: myapp_test
 
+
 production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>
+
+solid_cable:
   <<: *default
   url: <%= ENV["DATABASE_URL"] %>
