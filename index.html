@@ -42,21 +42,14 @@
     </div>
 
     <script>
-        // --- CONFIGURATION ---
         const CHATBOT_API_URL = 'https://chatbot-backend-zane.onrender.com/chat';
-
-        // --- DOM ELEMENTS ---
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const chatMessages = document.getElementById('chat-messages');
         const submitButton = document.getElementById('submit-button');
 
-        // --- EVENT LISTENERS ---
         chatForm.addEventListener('submit', handleFormSubmit);
 
-        /**
-         * Handles the submission of the chat form.
-         */
         function handleFormSubmit(e) {
             e.preventDefault();
             const userMessage = messageInput.value.trim();
@@ -64,22 +57,18 @@
 
             addMessage(userMessage, 'user');
             messageInput.value = '';
-            toggleForm(false); // Disable form
+            toggleForm(false);
 
-            // Create a new message container for the AI's response
             const aiMessageElement = createEmptyMessage('ai');
-            
-            // Use EventSource to connect to the streaming endpoint
-            const eventSource = new EventSource(`${CHATBOT_API_URL}?message=${encodeURIComponent(userMessage)}`);
+            const encodedMessage = encodeURIComponent(userMessage);
+            const eventSource = new EventSource(`${CHATBOT_API_URL}?message=${encodedMessage}`);
 
             eventSource.onmessage = function(event) {
-                if (event.data === "[ERROR]") {
-                    aiMessageElement.textContent = "Sorry, an error occurred.";
+                if (event.data === "[DONE]") {
                     eventSource.close();
-                    toggleForm(true); // Re-enable form
+                    toggleForm(true);
                     return;
                 }
-                // Append the incoming text chunk to the AI message element
                 aiMessageElement.textContent += event.data;
                 scrollToBottom();
             };
@@ -88,13 +77,10 @@
                 console.error("EventSource failed:", err);
                 aiMessageElement.textContent = "Sorry, the connection was lost. Please try again.";
                 eventSource.close();
-                toggleForm(true); // Re-enable form
+                toggleForm(true);
             };
         }
 
-        /**
-         * Adds a complete message to the chat window.
-         */
         function addMessage(text, type) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', type === 'user' ? 'user-message' : 'ai-message');
@@ -103,46 +89,24 @@
             scrollToBottom();
         }
 
-        /**
-         * Creates an empty message container to be filled by the stream.
-         */
         function createEmptyMessage(type) {
             const messageElement = document.createElement('div');
             messageElement.classList.add('message', 'ai-message');
-            messageElement.textContent = ''; // Start empty
+            messageElement.textContent = '';
             chatMessages.appendChild(messageElement);
             scrollToBottom();
             return messageElement;
         }
 
-        /**
-         * Disables or enables the input form.
-         */
         function toggleForm(enabled) {
             messageInput.disabled = !enabled;
             submitButton.disabled = !enabled;
             submitButton.classList.toggle('opacity-50', !enabled);
         }
 
-        /**
-         * Scrolls the chat messages container to the bottom.
-         */
         function scrollToBottom() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
         }
     </script>
 </body>
 </html>
-```
-
-### Next Steps
-
-1.  **Update your files** with the new code provided above.
-2.  **Push the changes** to your `chatbot-backend` repository on GitHub.
-    ```bash
-    git add .
-    git commit -m "Feat: Implement streaming for chat responses"
-    git push
-    ```
-3.  **Wait for Render to deploy** both your backend and your static site.
-4.  **Test it out!** Visit your static site URL and try sending a message. You should see the AI's response appear word by wo

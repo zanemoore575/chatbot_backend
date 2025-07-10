@@ -4,35 +4,43 @@ class ApplicationController < ActionController::API
   include ActionController::Live
 
   def chat
-    # Set headers for streaming. This must be done first.
+    # Set headers for Server-Sent Events (SSE)
     response.headers['Content-Type'] = 'text/event-stream'
     response.headers['Cache-Control'] = 'no-cache'
+    
+    # Using ActionController::Live::SSE is a cleaner way to write to the stream
+    sse = SSE.new(response.stream)
 
-    user_message = params[:message]
+    begin
+      user_message = params[:message]
+      client = OpenAI::Client.new
 
-    # We'll send an error over the stream if the message is blank.
-    if user_message.blank?
-      response.stream.write("data: [ERROR] Message cannot be empty.\n\n")
-      response.stream.close
-      return
+      # Add a system message here to define the chatbot's role
+      system_prompt = "You are a helpful assistant." 
+
+      client.chat(
+        parameters: {
+          model: "gpt-4.1-nano", # Or your preferred model
+          messages: [
+            { role: "system", content: system_prompt },
+            { role: "user", content: user_message }
+          ],
+          stream: proc do |chunk, _bytesize|
+            # Extract the content from the streaming chunk
+            content = chunk.dig("choices", 0, "delta", "content")
+            # Write the content to the stream if it exists
+            sse.write(content) if content
+          end
+        }
+      )
+    rescue IOError
+      # This error can happen if the client disconnects.
+      # It's safe to ignore.
+    ensure
+      # IMPORTANT: Send a special [DONE] message so the frontend knows to close the connection.
+      sse.write("[DONE]")
+      # Close the stream.
+      sse.close
     end
-
-    client = OpenAI::Client.new
-
-    # The `openai-ruby` gem will call this proc for each chunk of data.
-    # The controller action will stay open as long as this stream is active.
-    client.chat(
-      parameters: {
-        model: "gpt-4.1-nano",
-        messages: [{ role: "user", content: user_message }],
-        temperature: 0.7,
-        stream: proc do |chunk, _bytesize|
-          content = chunk.dig("choices", 0, "delta", "content")
-          response.stream.write("data: #{content}\n\n") if content
-        end
-      }
-    )
-  # When the `client.chat` block is finished, ActionController::Live will
-  # handle closing the stream automatically.
   end
 end
