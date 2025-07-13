@@ -17,5 +17,7 @@ test:
 # On Render, the DATABASE_URL environment variable is automatically provided
 # for your service. This is the only configuration needed for production.
 production:
-  <<: *default
   url: <%= ENV["DATABASE_URL"] %>
+  adapter: postgresql
+  encoding: unicode
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
