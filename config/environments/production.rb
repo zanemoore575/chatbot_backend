@@ -53,6 +53,9 @@ Rails.application.configure do
 
   # Use file system for caching in production
   config.cache_store = :file_store, 'tmp/cache/'
+  
+  # Disable Solid Cache in production
+  config.solid_cache.enabled = false if defined?(SolidCache)
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
   # config.active_job.queue_adapter     = :resque
