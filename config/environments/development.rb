@@ -30,8 +30,10 @@ Rails.application.configure do
     config.cache_store = :null_store
   end
 
-  # Disable Solid Cache in development to avoid any caching.
-  config.solid_cache.enabled = false if defined?(SolidCache)
+  # Safely handle Solid Cache configuration
+  if defined?(SolidCache)
+    config.solid_cache.enabled = false
+  end
 
   # Store uploaded files on the local file system (see config/storage.yml for options).
   config.active_storage.service = :local
