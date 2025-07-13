@@ -1,5 +1,5 @@
 # This is the standard Rails database configuration file.
-# The production database is now configured in config/environments/production.rb
+# The production database is configured below to use the DATABASE_URL environment variable.
 
 default: &default
   adapter: postgresql

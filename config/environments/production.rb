@@ -74,17 +74,4 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  # ========== THIS IS THE FIX ==========
-  # Force the application to use the DATABASE_URL from the environment.
-  # This block must be inside the `Rails.application.configure do` block.
-  if ENV["DATABASE_URL"]
-    config.database_configuration = {
-      "production" => {
-        "url" => ENV["DATABASE_URL"],
-        "adapter" => "postgresql",
-        "encoding" => "unicode",
-        "pool" => ENV.fetch("RAILS_MAX_THREADS") { 5 }
-      }
-    }
-  end
 end
