@@ -51,8 +51,8 @@ Rails.application.configure do
   # "info" includes generic server information, but not debug-level information.
   config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info")
 
-  # Use a different cache store in production.
-  # config.cache_store = :mem_cache_store
+  # Use file system for caching in production
+  config.cache_store = :file_store, 'tmp/cache/'
 
   # Use a real queuing backend for Active Job (and separate queues per environment).
   # config.active_job.queue_adapter     = :resque
