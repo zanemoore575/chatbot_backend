@@ -2,61 +2,85 @@
 
 class ApplicationController < ActionController::API
   include ActionController::Live
+  
+  rescue_from StandardError, with: :handle_error
 
   def chat
+    # Verify required parameters
+    unless params[:session_id].present? && params[:message].present?
+      return render json: { error: 'Missing required parameters' }, status: :bad_request
+    end
+
     response.headers['Content-Type'] = 'text/event-stream'
     response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    
     sse = SSE.new(response.stream)
+    session_id = params[:session_id]
+    user_message = params[:message]
 
-    # This block ensures a single database connection is used for the entire request,
-    # preventing connection pool errors with streaming.
-    ActiveRecord::Base.connection_pool.with_connection do
-      begin
-        session_id = params[:session_id]
-        user_message = params[:message]
-        
-        # Define the AI's personality and rules here.
-        system_prompt = "You are a friendly and efficient sales assistant for Custom AI Solutions. Keep your answers concise, helpful, and to the point. Your goal is to answer questions about our services quickly."
+    begin
+      # Save user message
+      Message.create!(
+        session_id: session_id,
+        role: 'user',
+        content: user_message
+      )
 
-        # Load the last 10 messages to provide context to the AI.
-        history = Message.where(session_id: session_id).order(created_at: :desc).limit(10).reverse.map do |msg|
-          { role: msg.role, content: msg.content }
-        end
+      # Load conversation history
+      history = Message.where(session_id: session_id)
+                      .order(created_at: :desc)
+                      .limit(10)
+                      .reverse
+                      .map { |msg| { role: msg.role, content: msg.content } }
 
-        messages_to_send = [
-          { role: "system", content: system_prompt }
-        ] + history + [{ role: "user", content: user_message }]
+      # Prepare messages for OpenAI
+      messages = [
+        { role: 'system', content: 'You are a helpful assistant.' },
+        *history,
+        { role: 'user', content: user_message }
+      ]
 
-        # Save the new user message to the database.
-        Message.create!(session_id: session_id, role: 'user', content: user_message)
+      # Initialize OpenAI client
+      client = OpenAI::Client.new
+      full_response = ""
 
-        client = OpenAI::Client.new
-        full_response = ""
-
-        client.chat(
-          parameters: {
-            model: "gpt-4.1-nano",
-            messages: messages_to_send,
-            stream: proc do |chunk, _bytesize|
-              content = chunk.dig("choices", 0, "delta", "content")
-              if content
-                full_response += content
-                sse.write(content)
-              end
+      # Stream response from OpenAI
+      client.chat(
+        parameters: {
+          model: "gpt-4",
+          messages: messages,
+          stream: proc do |chunk, _bytesize|
+            content = chunk.dig("choices", 0, "delta", "content")
+            if content
+              full_response += content
+              sse.write(content)
             end
-          }
+          end
+        }
+      )
+
+      # Save assistant's response
+      if full_response.present?
+        Message.create!(
+          session_id: session_id,
+          role: 'assistant',
+          content: full_response
         )
-
-        # Save the complete AI response to the database.
-        Message.create!(session_id: session_id, role: 'assistant', content: full_response)
-
-      rescue => e
-        logger.error "Chat Error: #{e.message}\n#{e.backtrace.join("\n")}"
-        sse.write("[ERROR] An internal error occurred.")
-      ensure
-        sse.write("[DONE]")
-        sse.close
       end
+
+    rescue => e
+      Rails.logger.error "Chat Error: #{e.message}"
+      sse.write("Error: #{e.message}")
+    ensure
+      sse.close
     end
+  end
+
+  private
+
+  def handle_error(exception)
+    Rails.logger.error "Application Error: #{exception.message}\n#{exception.backtrace.join("\n")}"
+    render json: { error: 'An unexpected error occurred' }, status: :internal_server_error
   end
 end
