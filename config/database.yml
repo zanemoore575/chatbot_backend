@@ -14,8 +14,8 @@ test:
   <<: *default
   database: chatbot_backend_test
 
+# On Render, the DATABASE_URL environment variable is automatically provided
+# for your service. This is the only configuration needed for production.
 production:
   <<: *default
-  # This section is now overridden by the configuration in production.rb
-  # but is kept here for completeness.
-  database: chatbot_backend_production
+  url: <%= ENV["DATABASE_URL"] %>
